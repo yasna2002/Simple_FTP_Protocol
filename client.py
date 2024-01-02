@@ -34,7 +34,10 @@ if __name__ == '__main__':
     send_username()
 
     while True:
-        print(sock.recv(1024).decode())
+        msg = sock.recv(1024).decode()
+        print(msg)
+        if msg == "Auf wiedersehen :)":
+            break
         sock.send(input().encode())
 
 

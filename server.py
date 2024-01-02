@@ -1,3 +1,4 @@
+import os
 import socket
 import threading
 
@@ -16,8 +17,23 @@ def handel_command(client_socket, command):
         pass
     elif command[0] == "STOR":
         pass
+
     elif command[0] == "DELE":
-        pass
+        try:
+            msg = "Do you really wish to delete? Y/N"
+            client_socket.send(msg.encode())
+            response = client_socket.recv(1024).decode()
+            if response == "Y" or response == "y":
+                os.remove(command[1])
+                msg = "File has been successfully deleted!"
+                client_socket.send(msg.encode())
+            elif response == "N" or response == "n":
+                msg = "Command has been canceled successfully!"
+                client_socket.send(msg.encode())
+        except FileNotFoundError:
+            msg = "No such file or directory!"
+            client_socket.send(msg.encode())
+
     elif command[0] == "MKD":
         pass
     elif command[0] == "RMD":
@@ -29,16 +45,17 @@ def handel_command(client_socket, command):
     elif command[0] == "CDUP":
         pass
     elif command[0] == "QUIT":
+        msg = "Auf wiedersehen :)"
+        client_socket.send(msg.encode())
         client_socket.close()
+        return
 
 
-def show_commands_list(client_socket):
-    welcome_msg = "\n----You are connected to the server----\nhere is a list of commands you can send:\n" \
-                  "01.LIST\n02.RETR -(RETR /path/file.txt)-\n03.STOR -(STOR /client-path /server-path)-" \
-                  "\n04.DELE -(DELE /path/file.txt)-\n05.MKD -(MKD /home/user OR MKD ../folder)-" \
-                  "\n06.RMD -(RMD /home/user OR RMD ../folder)-\n07.PWD\n08.CWD -(CWD /home/user OR CWD ../folder)-\n" \
-                  "09.CDUP -(CDUP /home/user OR CDUP ../folder)-\n10.QUIT\n--------------------------"
-    client_socket.send(welcome_msg.encode())
+    command = check_command(client_socket)
+    handel_command(client_socket, command)
+
+
+def check_command(client_socket):
     chosen_command = client_socket.recv(1024).decode()
     chosen_command = chosen_command.split()
 
@@ -59,8 +76,15 @@ def show_commands_list(client_socket):
 def handle_client(client_socket, client_address):
     print(f"[NEW CONNECTION] {client_address} connected.")
 
+    welcome_msg = "\n----You are connected to the server----\nhere is a list of commands you can send:\n" \
+                  "01.LIST\n02.RETR -(RETR /path/file.txt)-\n03.STOR -(STOR /client-path /server-path)-" \
+                  "\n04.DELE -(DELE /path/file.txt)-\n05.MKD -(MKD /home/user OR MKD ../folder)-" \
+                  "\n06.RMD -(RMD /home/user OR RMD ../folder)-\n07.PWD\n08.CWD -(CWD /home/user OR CWD ../folder)-\n" \
+                  "09.CDUP -(CDUP /home/user OR CDUP ../folder)-\n10.QUIT\n--------------------------"
+    client_socket.send(welcome_msg.encode())
+
     # showing the list of commands to the user
-    command = show_commands_list(client_socket)
+    command = check_command(client_socket)
 
     handel_command(client_socket, command)
 
