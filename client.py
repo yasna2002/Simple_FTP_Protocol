@@ -9,9 +9,11 @@ def send_req(message):
 
 
 if __name__ == '__main__':
-    while(1):
-        inp = input("Enter 'Get user_id' or 'POST user_name user_age' to simulate a request: ")
-        received_msg = send_req(inp)
-        print("Response from the server:")
-        print(received_msg)
+
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.connect(('localhost', 8080))
+    while True:
+        print(sock.recv(1024).decode())
+        sock.send(input().encode())
+
 

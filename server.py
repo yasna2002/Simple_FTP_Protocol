@@ -1,58 +1,67 @@
 import socket
 import threading
 
-# Sample user data
-users = {
-    'user1': {'name': 'Alice', 'age': 30},
-    'user2': {'name': 'Bob', 'age': 25},
-    'user3': {'name': 'Charlie', 'age': 35},
-}
+def handel_command(client_socket, command):
+    if command[0] == "LIST":
+        pass
+    elif command[0] == "RETR":
+        pass
+    elif command[0] == "STOR":
+        pass
+    elif command[0] == "DELE":
+        pass
+    elif command[0] == "MKD":
+        pass
+    elif command[0] == "RMD":
+        pass
+    elif command[0] == "PWD":
+        pass
+    elif command[0] == "CWD":
+        pass
+    elif command[0] == "CDUP":
+        pass
+    elif command[0] == "QUIT":
+        pass
 
 
-def handle_get_request(request):
-    # Parse the request and extract the requested user ID
-    request_parts = request.split()
-    if len(request_parts) >= 2:
-        user_id = request_parts[1]
+def show_commands_list(client_socket):
+    welcome_msg = "----You are connected to the sever----\nhere is a list of commands you can send:\n" \
+                  "01.LIST\n02.RETR -(RETR /path/file.txt)-\n03.STOR -(STOR /client-path /server-path)-" \
+                  "\n04.DELE -(DELE /path/file.txt)-\n05.MKD -(MKD /home/user OR MKD ../folder)-" \
+                  "\n06.RMD -(RMD /home/user OR RMD ../folder)-\n07.PWD\n08.CWD -(CWD /home/user OR CWD ../folder)-\n" \
+                  "09.CDUP -(CDUP /home/user OR CDUP ../folder)-\n10.QUIT\n--------------------------"
+    client_socket.send(welcome_msg.encode())
+    chosen_command = client_socket.recv(1024).decode()
+    chosen_command = chosen_command.split()
 
-        if user_id in users:
-            user_info = users[user_id]
-            response = f"HTTP/1.1 200 OK\nContent-Type: application/json\n\n{user_info}"
+    while True:
+        if not (chosen_command[0] == "LIST" or chosen_command[0] == "RETR" or chosen_command[0] == "STOR" or
+                chosen_command[0] == "DELE" or chosen_command[0] == "MKD" or chosen_command[0] == "RMD" or
+                chosen_command[0] == "PWD" or chosen_command[0] == "CWD" or chosen_command[0] == "CDUP" or
+                chosen_command[0] == "QUIT"):
+            msg = "Invalid Command!\nTry Again:"
+            client_socket.send(msg.encode())
+            chosen_command = client_socket.recv(1024).decode()
+            chosen_command = chosen_command.split()
         else:
-            response = "HTTP/1.1 404 Not Found\n\nUser not found"
-
-    return response
-
-
-def handle_post_request(request):
-    command = request.split(' ')
-    name = command[1]
-    age = command[2]
-    users[f'user{len(users) + 1}'] = {'name': name, 'age': int(age)}
-    response = "HTTP/1.1 200 OK\n\nUser data updated"
-    return response
+            break
+    return chosen_command
 
 
 def handle_client(client_socket, client_address):
     print(f"[NEW CONNECTION] {client_address} connected.")
-    welcome_msg = "You are connected to the sever here is a list of command you can send:\n"
-    client_socket.send(welcome_msg.encode())
 
+    # showing the list of commands to the user
+    command = show_commands_list(client_socket)
+
+    handel_command(client_socket, command)
 
     request = client_socket.recv(1024).decode()
 
-    if "GET" in request:
-        response = handle_get_request(request)
-    elif "POST" in request:
-        response = handle_post_request(request)
-    else:
-        response = "HTTP/1.1 400 Bad Request\n\nInvalid request"
-
-    client_socket.send(response.encode())
     client_socket.close()
 
 
-def main():
+if __name__ == '__main__':
     host = 'localhost'
     port = 8080
 
@@ -66,11 +75,3 @@ def main():
         thread = threading.Thread(target=handle_client, args=(client_socket, client_address))
         thread.start()
         print(f"[ACTIVE CONNECTIONS] {threading.active_count() - 1}")
-
-
-
-
-
-
-if __name__ == '__main__':
-    main()
