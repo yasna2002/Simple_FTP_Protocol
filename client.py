@@ -35,8 +35,8 @@ if __name__ == '__main__':
 
     send_username()
 
-
-
-
+    while True:
+        print(sock.recv(1024).decode())
+        sock.send(input().encode())
 
 
