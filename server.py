@@ -40,7 +40,40 @@ def handel_command(client_socket, command):
         client_socket.send(list_msg.encode())
 
     elif command[0] == "RETR":
-        pass
+
+        server_path = command[1]
+        try:
+            if ".txt" in server_path:
+                file = open(server_path, "r")
+                file_chunk = file.read()
+
+                while file_chunk:
+                    client_socket.send(file_chunk.encode())
+                    file_chunk = file.read()
+                client_socket.send(b'0')
+                print("sent")
+
+                file.close()
+                client_socket.send("File has been sent successfully!".encode())
+
+            else:
+                file = open(server_path, "rb")
+                file_chunk = file.read(1024)
+
+                while file_chunk:
+                    client_socket.send(file_chunk)
+                    file_chunk = file.read(1024)
+                client_socket.send(b'0')
+                print("sent")
+
+                file.close()
+                client_socket.send("File has been sent successfully!".encode())
+
+        except FileNotFoundError:
+            print("File not found!")
+            client_socket.send("File Not Found".encode())
+            client_socket.send("Please try again!".encode())
+
     elif command[0] == "STOR":
         pass
 

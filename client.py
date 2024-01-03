@@ -1,3 +1,4 @@
+import os
 import socket
 
 
@@ -35,9 +36,37 @@ if __name__ == '__main__':
 
     while True:
         msg = sock.recv(1024).decode()
+
         print(msg)
         if msg == "Auf wiedersehen :)":
             break
-        sock.send(input().encode())
+
+        inp = input("---> ")
+        sock.send(inp.encode())
+
+        if "RETR" in inp:
+            try:
+                file_path = "E:/CN/network-project-phase02-rabbids/clients/" + inp.split("/")[-1]
+
+                file_chunk = sock.recv(1024)
+                # print(type(file_chunk))
+                # print(file_chunk)
+                if file_chunk.decode() == "File Not Found":
+                    print("File Not Found")
+                    continue
+            except:
+                file = open(file_path, "wb")
+
+                if file_chunk == b'0':
+                    continue
+
+                while True:
+                    file.write(file_chunk)
+                    file_chunk = sock.recv(1024)
+                    if file_chunk == b'0':
+                        file.close()
+                        break
+
+
 
 
