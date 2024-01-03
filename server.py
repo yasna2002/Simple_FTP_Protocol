@@ -75,7 +75,18 @@ def handel_command(client_socket, command):
             client_socket.send("Please try again!".encode())
 
     elif command[0] == "STOR":
-        pass
+        server_path = command[2] + "/" + command[1].split("/")[-1]
+
+        file = open(server_path, "wb")
+        file_chunk = client_socket.recv(1024)
+
+        while file_chunk != b'0':
+            file.write(file_chunk)
+            file_chunk = client_socket.recv(1024)
+            if file_chunk == b'0':
+                file.close()
+                break
+        client_socket.send("File has been recieved!".encode())
 
     elif command[0] == "DELE":
         try:

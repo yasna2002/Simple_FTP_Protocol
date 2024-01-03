@@ -44,6 +44,28 @@ if __name__ == '__main__':
         inp = input("---> ")
         sock.send(inp.encode())
 
+        if "STOR" in inp:
+
+            try:
+                client_path = inp.split(" ")[1]
+
+                file = open(client_path, "rb")
+                file_chunk = file.read(1024)
+
+                while file_chunk:
+                    sock.send(file_chunk)
+                    file_chunk = file.read(1024)
+                sock.send(b'0')
+                print("sent")
+
+                file.close()
+                continue
+
+            except FileNotFoundError:
+                print("File Not Found")
+                continue
+
+
         if "RETR" in inp:
             try:
                 file_path = "E:/CN/network-project-phase02-rabbids/clients/" + inp.split("/")[-1]
@@ -66,6 +88,7 @@ if __name__ == '__main__':
                     if file_chunk == b'0':
                         file.close()
                         break
+
 
 
 
