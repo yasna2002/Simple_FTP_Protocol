@@ -1,6 +1,9 @@
 import os
+import datetime
 import socket
 import threading
+import os
+
 
 # Sample user data
 users = {
@@ -11,8 +14,31 @@ users = {
 
 
 def handel_command(client_socket, command):
+    path = 'E:/CN/network-project-phase02-rabbids/Server'
+
     if command[0] == "LIST":
-        pass
+        list_msg = ""
+        if len(command) == 1:
+            for filename in os.listdir(path):
+                file_path = os.path.join(path, filename)
+                mod_time = datetime.datetime.fromtimestamp(os.path.getmtime(file_path))
+                if os.path.isdir(file_path):
+                    list_msg = list_msg + str(mod_time) + " " + filename + "\n"
+                else:
+                    size = os.path.getsize(file_path)
+                    list_msg = list_msg + str(mod_time) + " " + filename + " " + str(size) + " bytes" + "\n"
+        else:
+            client_path = command[1]
+            for filename in os.listdir(client_path):
+                file_path = os.path.join(client_path, filename)
+                mod_time = datetime.datetime.fromtimestamp(os.path.getmtime(file_path))
+                if os.path.isdir(file_path):
+                    list_msg = list_msg + str(mod_time) + " " + filename + "\n"
+                else:
+                    size = os.path.getsize(file_path)
+                    list_msg = list_msg + str(mod_time) + " " + filename + " " + str(size) + " bytes" + "\n"
+        client_socket.send(list_msg.encode())
+
     elif command[0] == "RETR":
         pass
     elif command[0] == "STOR":
