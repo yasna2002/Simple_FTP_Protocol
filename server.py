@@ -4,23 +4,24 @@ import socket
 import threading
 import os
 
-root_path = 'D:/PythonProjects/network-project-phase02-rabbids/Server'
-curr_path = 'D:/PythonProjects/network-project-phase02-rabbids/Server'
+root_path = 'E:/CN/network-project-phase02-rabbids/Server'
+curr_path = 'E:/CN/network-project-phase02-rabbids/Server'
 
 # Sample user data
 users = {
-    'user1': 1111,
-    'user2': 1111,
-    'user3': 1111
+    'ilya': 1382,
+    'yasna': 1382,
+    'admin': 1111
 }
 
 
 def handel_command(client_socket, command):
+    global curr_path
     if command[0] == "LIST":
         list_msg = ""
         if len(command) == 1:
-            for filename in os.listdir(root_path):
-                file_path = os.path.join(root_path, filename)
+            for filename in os.listdir(curr_path):
+                file_path = os.path.join(curr_path, filename)
                 mod_time = datetime.datetime.fromtimestamp(os.path.getmtime(file_path))
                 if os.path.isdir(file_path):
                     list_msg = list_msg + str(mod_time) + " " + filename + "\n"
@@ -37,21 +38,22 @@ def handel_command(client_socket, command):
                 else:
                     size = os.path.getsize(file_path)
                     list_msg = list_msg + str(mod_time) + " " + filename + " " + str(size) + " bytes" + "\n"
-        client_socket.send(list_msg.encode())
+        if len(list_msg) == 0:
+            client_socket.send("NO FILE FOUND".encode())
+        else:
+            client_socket.send(list_msg.encode())
     # .........................................................................
     elif command[0] == "RETR":
-
         server_path = command[1]
         try:
             if ".txt" in server_path:
                 file = open(server_path, "r")
-                file_chunk = file.read()
+                file_chunk = file.readline()
 
                 while file_chunk:
                     client_socket.send(file_chunk.encode())
-                    file_chunk = file.read()
+                    file_chunk = file.readline()
                 client_socket.send(b'0')
-                print("sent")
 
                 file.close()
                 client_socket.send("File has been sent successfully!".encode())
@@ -64,13 +66,11 @@ def handel_command(client_socket, command):
                     client_socket.send(file_chunk)
                     file_chunk = file.read(1024)
                 client_socket.send(b'0')
-                print("sent")
 
                 file.close()
                 client_socket.send("File has been sent successfully!".encode())
 
         except FileNotFoundError:
-            print("File not found!")
             client_socket.send("File Not Found".encode())
             client_socket.send("Please try again!".encode())
 
@@ -105,7 +105,6 @@ def handel_command(client_socket, command):
             client_socket.send(msg.encode())
     # .........................................................................
     elif command[0] == "MKD":
-        global curr_path
         try:
             if ".." in command[1]:
                 temp = command[1].split("/")
@@ -122,11 +121,9 @@ def handel_command(client_socket, command):
     elif command[0] == "RMD":
         try:
             if ".." in command[1]:
-                real_path = curr_path
+                temp = command[1].split("/")
+                real_path = curr_path + "/" + temp[1]
                 os.rmdir(real_path)
-                real_path = real_path.split("/")
-                real_path.pop(-1)
-                curr_path = '/'.join(real_path)
             else:
                 os.rmdir(command[1])
             msg = "The folder has been removed successfully!"
@@ -139,27 +136,28 @@ def handel_command(client_socket, command):
         client_socket.send(curr_path.encode())
     # .........................................................................
     elif command[0] == "CWD":
-        try:
-            if ".." in command[1]:
-                temp = command[1].split("/")
-                curr_path = curr_path + "/" + temp[1]
+        if ".." in command[1]:
+            temp = command[1].split("/")
+            temp2 = curr_path + "/" + temp[1]
+            if os.path.isdir(temp2):
+                curr_path = temp2
             else:
+                msg = "No such directory!"
+                client_socket.send(msg.encode())
+        else:
+            if os.path.isdir(command[1]):
                 curr_path = command[1]
-            msg = "Directory has been successfully changed to " + curr_path
-            client_socket.send(msg.encode())
-        except FileNotFoundError:
-            msg = "No such directory!"
-            client_socket.send(msg.encode())
+            else:
+                msg = "No such directory!"
+                client_socket.send(msg.encode())
+        msg = "Directory has been successfully changed to " + curr_path
+        client_socket.send(msg.encode())
     # .........................................................................
     elif command[0] == "CDUP":
-        try:
             temp = curr_path.split("/")
             temp.pop(-1)
             curr_path = '/'.join(temp)
             msg = "Directory has been successfully changed to " + curr_path
-            client_socket.send(msg.encode())
-        except FileNotFoundError:
-            msg = "No such directory!"
             client_socket.send(msg.encode())
     # .........................................................................
     elif command[0] == "QUIT":

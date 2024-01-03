@@ -55,7 +55,6 @@ if __name__ == '__main__':
                     sock.send(file_chunk)
                     file_chunk = file.read(1024)
                 sock.send(b'0')
-                print("sent")
 
                 file.close()
                 continue
@@ -70,8 +69,6 @@ if __name__ == '__main__':
                 file_path = "E:/CN/network-project-phase02-rabbids/clients/" + inp.split("/")[-1]
 
                 file_chunk = sock.recv(1024)
-                # print(type(file_chunk))
-                # print(file_chunk)
                 if file_chunk.decode() == "File Not Found":
                     print("File Not Found")
                     continue
