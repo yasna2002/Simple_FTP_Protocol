@@ -4,6 +4,8 @@ import socket
 import threading
 import os
 
+root_path = 'D:/PythonProjects/network-project-phase02-rabbids/Server'
+curr_path = 'D:/PythonProjects/network-project-phase02-rabbids/Server'
 
 # Sample user data
 users = {
@@ -14,13 +16,11 @@ users = {
 
 
 def handel_command(client_socket, command):
-    path = 'E:/CN/network-project-phase02-rabbids/Server'
-
     if command[0] == "LIST":
         list_msg = ""
         if len(command) == 1:
-            for filename in os.listdir(path):
-                file_path = os.path.join(path, filename)
+            for filename in os.listdir(root_path):
+                file_path = os.path.join(root_path, filename)
                 mod_time = datetime.datetime.fromtimestamp(os.path.getmtime(file_path))
                 if os.path.isdir(file_path):
                     list_msg = list_msg + str(mod_time) + " " + filename + "\n"
@@ -38,7 +38,7 @@ def handel_command(client_socket, command):
                     size = os.path.getsize(file_path)
                     list_msg = list_msg + str(mod_time) + " " + filename + " " + str(size) + " bytes" + "\n"
         client_socket.send(list_msg.encode())
-
+    # .........................................................................
     elif command[0] == "RETR":
 
         server_path = command[1]
@@ -103,23 +103,70 @@ def handel_command(client_socket, command):
         except FileNotFoundError:
             msg = "No such file or directory!"
             client_socket.send(msg.encode())
-
+    # .........................................................................
     elif command[0] == "MKD":
-        pass
+        global curr_path
+        try:
+            if ".." in command[1]:
+                temp = command[1].split("/")
+                real_path = curr_path + "/" + temp[1]
+                os.mkdir(real_path)
+            else:
+                os.mkdir(command[1])
+            msg = "The folder has been made successfully!"
+            client_socket.send(msg.encode())
+        except FileNotFoundError:
+            msg = "No such directory!"
+            client_socket.send(msg.encode())
+    # .........................................................................
     elif command[0] == "RMD":
-        pass
+        try:
+            if ".." in command[1]:
+                real_path = curr_path
+                os.rmdir(real_path)
+                real_path = real_path.split("/")
+                real_path.pop(-1)
+                curr_path = '/'.join(real_path)
+            else:
+                os.rmdir(command[1])
+            msg = "The folder has been removed successfully!"
+            client_socket.send(msg.encode())
+        except FileNotFoundError:
+            msg = "No such directory!"
+            client_socket.send(msg.encode())
+    # .........................................................................
     elif command[0] == "PWD":
-        pass
+        client_socket.send(curr_path.encode())
+    # .........................................................................
     elif command[0] == "CWD":
-        pass
+        try:
+            if ".." in command[1]:
+                temp = command[1].split("/")
+                curr_path = curr_path + "/" + temp[1]
+            else:
+                curr_path = command[1]
+            msg = "Directory has been successfully changed to " + curr_path
+            client_socket.send(msg.encode())
+        except FileNotFoundError:
+            msg = "No such directory!"
+            client_socket.send(msg.encode())
+    # .........................................................................
     elif command[0] == "CDUP":
-        pass
+        try:
+            temp = curr_path.split("/")
+            temp.pop(-1)
+            curr_path = '/'.join(temp)
+            msg = "Directory has been successfully changed to " + curr_path
+            client_socket.send(msg.encode())
+        except FileNotFoundError:
+            msg = "No such directory!"
+            client_socket.send(msg.encode())
+    # .........................................................................
     elif command[0] == "QUIT":
         msg = "Auf wiedersehen :)"
         client_socket.send(msg.encode())
         client_socket.close()
         return
-
 
     command = check_command(client_socket)
     handel_command(client_socket, command)
@@ -150,7 +197,7 @@ def handle_client(client_socket, client_address):
                   "01.LIST\n02.RETR -(RETR /path/file.txt)-\n03.STOR -(STOR /client-path /server-path)-" \
                   "\n04.DELE -(DELE /path/file.txt)-\n05.MKD -(MKD /home/user OR MKD ../folder)-" \
                   "\n06.RMD -(RMD /home/user OR RMD ../folder)-\n07.PWD\n08.CWD -(CWD /home/user OR CWD ../folder)-\n" \
-                  "09.CDUP -(CDUP /home/user OR CDUP ../folder)-\n10.QUIT\n--------------------------"
+                  "09.CDUP\n10.QUIT\n--------------------------"
     client_socket.send(welcome_msg.encode())
 
     # showing the list of commands to the user
@@ -209,4 +256,3 @@ if __name__ == '__main__':
         thread = threading.Thread(target=get_username, args=(client_socket, client_address))
         thread.start()
         print(f"[ACTIVE CONNECTIONS] {threading.active_count() - 1}")
-
