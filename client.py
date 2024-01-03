@@ -38,6 +38,6 @@ if __name__ == '__main__':
         print(msg)
         if msg == "Auf wiedersehen :)":
             break
-        sock.send(input().encode())
+        sock.send(input("---> ").encode())
 
 
