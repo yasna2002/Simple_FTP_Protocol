@@ -44,33 +44,40 @@ if __name__ == '__main__':
         sock.send(inp.encode())
 
         if "STOR" in inp:
+            control_msg = sock.recv(1024).decode()
+            if "This folder is private!" in control_msg:
+                print(control_msg)
+                sock.send("OK".encode())
+                continue
+            else:
+                try:
+                    client_path = inp.split(" ")[1]
 
-            try:
-                client_path = inp.split(" ")[1]
-
-                file = open(client_path, "rb")
-                file_chunk = file.read(1024)
-
-                while file_chunk:
-                    sock.send(file_chunk)
+                    file = open(client_path, "rb")
                     file_chunk = file.read(1024)
-                sock.send(b'0')
 
-                file.close()
-                continue
+                    while file_chunk:
+                        sock.send(file_chunk)
+                        file_chunk = file.read(1024)
+                    sock.send(b'0')
 
-            except FileNotFoundError:
-                print("File Not Found")
-                continue
+                    file.close()
+                    continue
 
+                except FileNotFoundError:
+                    print("File Not Found")
+                    continue
 
         if "RETR" in inp:
             try:
-                file_path = "E:/CN/network-project-phase02-rabbids/clients/" + inp.split("/")[-1]
+                file_path = "D:/PythonProjects/network-project-phase02-rabbids/clients/" + inp.split("/")[-1]
 
                 file_chunk = sock.recv(1024)
                 if file_chunk.decode() == "File Not Found":
                     print("File Not Found")
+                    continue
+                if file_chunk.decode() == "This file is private!":
+                    print("This file is private!")
                     continue
             except:
                 file = open(file_path, "wb")
@@ -84,8 +91,3 @@ if __name__ == '__main__':
                     if file_chunk == b'0':
                         file.close()
                         break
-
-
-
-
-

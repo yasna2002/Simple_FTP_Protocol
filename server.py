@@ -2,22 +2,22 @@ import os
 import datetime
 import socket
 import threading
-import os
 
-root_path = 'E:/CN/network-project-phase02-rabbids/Server'
-curr_path = 'E:/CN/network-project-phase02-rabbids/Server'
+
+root_path = 'D:/PythonProjects/network-project-phase02-rabbids/Server'
+curr_path = 'D:/PythonProjects/network-project-phase02-rabbids/Server'
 
 # Sample user data
 users = {
     'ilya': 1382,
-    'yasna': 1382,
+    'yasna': 1381,
     'admin': 1111
 }
 
 report = ""
 
 
-def handel_command(client_socket, command):
+def handel_command(client_socket, command, user_name):
     global curr_path
     global report
     if command[0] == "LIST":
@@ -54,18 +54,9 @@ def handel_command(client_socket, command):
         report += "user entered: " + command[0] + " " + command[1] + "\n"
         server_path = command[1]
         try:
-            if ".txt" in server_path:
-                file = open(server_path, "r")
-                file_chunk = file.readline()
-
-                while file_chunk:
-                    client_socket.send(file_chunk.encode())
-                    file_chunk = file.readline()
-                client_socket.send(b'0')
-
-                file.close()
-                client_socket.send("File has been sent successfully!".encode())
-                report += "File has been successfully sent to the user\n"
+            if "prv" in server_path and user_name != "admin":
+                client_socket.send("This file is private!".encode())
+                client_socket.send("Only admin has access to this file!".encode())
 
             else:
                 file = open(server_path, "rb")
@@ -90,71 +81,87 @@ def handel_command(client_socket, command):
 
         server_path = command[2] + "/" + command[1].split("/")[-1]
 
-        file = open(server_path, "wb")
-        file_chunk = client_socket.recv(1024)
+        if "privet" in server_path and user_name != "admin":
+            client_socket.send("This folder is private!".encode())
+            client_socket.recv(1024).decode()
+            client_socket.send("Only admin can write a file in this folder!".encode())
 
-        while file_chunk != b'0':
-            file.write(file_chunk)
+        else:
+            client_socket.send("OK".encode())
+            file = open(server_path, "wb")
             file_chunk = client_socket.recv(1024)
-            if file_chunk == b'0':
-                file.close()
-                break
-        client_socket.send("File has been received!".encode())
-        report += "File has been received from client!\n"
+
+            while file_chunk != b'0':
+                file.write(file_chunk)
+                file_chunk = client_socket.recv(1024)
+                if file_chunk == b'0':
+                    file.close()
+                    break
+            client_socket.send("File has been received!".encode())
+            report += "File has been received from client!\n"
 
 
     elif command[0] == "DELE":
         report += "user entered: " + command[0] + "\n"
-        try:
-            msg = "Do you really wish to delete? Y/N"
-            client_socket.send(msg.encode())
-            response = client_socket.recv(1024).decode()
-            if response == "Y" or response == "y":
-                os.remove(command[1])
-                msg = "File has been successfully deleted!"
+        if "prv" in command[1] and user_name != "admin":
+            client_socket.send("This file is private!\nOnly admin has access to this file!".encode())
+        else:
+            try:
+                msg = "Do you really wish to delete? Y/N"
                 client_socket.send(msg.encode())
-            elif response == "N" or response == "n":
-                msg = "Command has been canceled successfully!"
+                response = client_socket.recv(1024).decode()
+                if response == "Y" or response == "y":
+                    os.remove(command[1])
+                    msg = "File has been successfully deleted!"
+                    client_socket.send(msg.encode())
+                elif response == "N" or response == "n":
+                    msg = "Command has been canceled successfully!"
+                    client_socket.send(msg.encode())
+                report += "user has deleted a file!\n"
+            except FileNotFoundError:
+                msg = "No such file or directory!"
+                report += "No such file or directory to be deleted!\n"
                 client_socket.send(msg.encode())
-            report += "user has deleted a file!\n"
-        except FileNotFoundError:
-            msg = "No such file or directory!"
-            report += "No such file or directory to be deleted!\n"
-            client_socket.send(msg.encode())
     # .........................................................................
     elif command[0] == "MKD":
         report += "user entered: " + command[0] + "\n"
-        try:
-            if ".." in command[1]:
-                temp = command[1].split("/")
-                real_path = curr_path + "/" + temp[1]
-                os.mkdir(real_path)
-            else:
-                os.mkdir(command[1])
-            msg = "The folder has been made successfully!"
-            report += "The folder has been made successfully!\n"
-            client_socket.send(msg.encode())
-        except FileNotFoundError:
-            msg = "No such directory!"
-            report += "No such directory!\n"
-            client_socket.send(msg.encode())
+        if "privet" in command[1] and user_name != "admin":
+            client_socket.send("This folder is private!\nOnly admin has access to this folder".encode())
+        else:
+            try:
+                if ".." in command[1]:
+                    temp = command[1].split("/")
+                    real_path = curr_path + "/" + temp[1]
+                    os.mkdir(real_path)
+                else:
+                    os.mkdir(command[1])
+                msg = "The folder has been made successfully!"
+                report += "The folder has been made successfully!\n"
+                client_socket.send(msg.encode())
+            except FileNotFoundError:
+                msg = "No such directory!"
+                report += "No such directory!\n"
+                client_socket.send(msg.encode())
     # .........................................................................
     elif command[0] == "RMD":
         report += "user entered: " + command[0] + "\n"
-        try:
-            if ".." in command[1]:
-                temp = command[1].split("/")
-                real_path = curr_path + "/" + temp[1]
-                os.rmdir(real_path)
-            else:
-                os.rmdir(command[1])
-            msg = "The folder has been removed successfully!"
-            report += "The folder has been made successfully!\n"
-            client_socket.send(msg.encode())
-        except FileNotFoundError:
-            msg = "No such directory!"
-            report += "No such directory!\n"
-            client_socket.send(msg.encode())
+        if "privet" in command[1] and user_name != "admin":
+            client_socket.send("This folder is private!\nOnly admin has access to this folder".encode())
+        else:
+            try:
+                if ".." in command[1]:
+                    temp = command[1].split("/")
+                    real_path = curr_path + "/" + temp[1]
+                    os.rmdir(real_path)
+                else:
+                    os.rmdir(command[1])
+                msg = "The folder has been removed successfully!"
+                report += "The folder has been made successfully!\n"
+                client_socket.send(msg.encode())
+            except FileNotFoundError:
+                msg = "No such directory!"
+                report += "No such directory!\n"
+                client_socket.send(msg.encode())
     # .........................................................................
     elif command[0] == "PWD":
         report += "user entered: " + command[0] + "\n"
@@ -162,25 +169,28 @@ def handel_command(client_socket, command):
     # .........................................................................
     elif command[0] == "CWD":
         report += "user entered: " + command[0] + "\n"
-        if ".." in command[1]:
-            temp = command[1].split("/")
-            temp2 = curr_path + "/" + temp[1]
-            if os.path.isdir(temp2):
-                curr_path = temp2
-            else:
-                msg = "No such directory!"
-                report += "No such directory!\n"
-                client_socket.send(msg.encode())
+        if "privet" in command[1] and user_name != "admin":
+            client_socket.send("This folder is private!\nOnly admin has access to this folder".encode())
         else:
-            if os.path.isdir(command[1]):
-                curr_path = command[1]
+            if ".." in command[1]:
+                temp = command[1].split("/")
+                temp2 = curr_path + "/" + temp[1]
+                if os.path.isdir(temp2):
+                    curr_path = temp2
+                else:
+                    msg = "No such directory!"
+                    report += "No such directory!\n"
+                    client_socket.send(msg.encode())
             else:
-                msg = "No such directory!"
-                report += "No such directory!\n"
-                client_socket.send(msg.encode())
-        msg = "Directory has been successfully changed to " + curr_path
-        report += msg + "\n"
-        client_socket.send(msg.encode())
+                if os.path.isdir(command[1]):
+                    curr_path = command[1]
+                else:
+                    msg = "No such directory!"
+                    report += "No such directory!\n"
+                    client_socket.send(msg.encode())
+            msg = "Directory has been successfully changed to " + curr_path
+            report += msg + "\n"
+            client_socket.send(msg.encode())
     # .........................................................................
     elif command[0] == "CDUP":
         report += "user entered: " + command[0] + "\n"
@@ -202,7 +212,7 @@ def handel_command(client_socket, command):
         client_socket.send(report.encode())
 
     command = check_command(client_socket)
-    handel_command(client_socket, command)
+    handel_command(client_socket, command, user_name)
 
 
 def check_command(client_socket):
@@ -226,7 +236,7 @@ def check_command(client_socket):
     return chosen_command
 
 
-def handle_client(client_socket, client_address):
+def handle_client(client_socket, client_address, user_name):
     print(f"[NEW CONNECTION] {client_address} connected.")
 
     welcome_msg = "\n----You are connected to the server----\nhere is a list of commands you can send:\n" \
@@ -239,20 +249,20 @@ def handle_client(client_socket, client_address):
     # showing the list of commands to the user
     command = check_command(client_socket)
 
-    handel_command(client_socket, command)
+    handel_command(client_socket, command, user_name)
 
 
-def get_password(client_socket, client_address, name):
+def get_password(client_socket, client_address, user_name):
     global report
     while True:
         request = client_socket.recv(1024).decode()
         if "PASS" in request:
             password = request.split(" ")[1]
-            if int(password) == users[name]:
+            if int(password) == users[user_name]:
                 msg = "You are logged in"
                 client_socket.send(msg.encode())
-                report += "\nUser " + name + " has logged in\n"
-                handle_client(client_socket, client_address)
+                report += "\nUser " + user_name + " has logged in\n"
+                handle_client(client_socket, client_address, user_name)
                 break
             else:
                 msg = "wrong password"
@@ -265,12 +275,12 @@ def get_password(client_socket, client_address, name):
 def get_username(client_socket, client_address):
     while True:
         request = client_socket.recv(1024).decode()
-        name = request.split(" ")[1]
+        user_name = request.split(" ")[1]
         if "USER" in request:
-            if name in users.keys():
-                msg = "hello " + name + " Please enter your password"
+            if user_name in users.keys():
+                msg = "hello " + user_name + " Please enter your password"
                 client_socket.send(msg.encode())
-                get_password(client_socket, client_address, name)
+                get_password(client_socket, client_address, user_name)
                 break
             else:
                 msg = "user does not exist"
