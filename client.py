@@ -1,4 +1,5 @@
 import socket
+from cryptography.fernet import Fernet
 
 
 def send_pass():
@@ -8,6 +9,7 @@ def send_pass():
         msg = sock.recv(1024).decode()
 
         if msg == "You are logged in":
+            sock.send(key)
             return
         else:
             print(msg)
@@ -29,7 +31,12 @@ def send_username():
 
 if __name__ == '__main__':
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    sock.connect(('localhost', 8080))
+    sock.connect(('localhost', 22))
+
+    key = Fernet.generate_key()
+    print(key)
+    fernet = Fernet(key)
+
 
     send_username()
 
@@ -44,48 +51,99 @@ if __name__ == '__main__':
         sock.send(inp.encode())
 
         if "STOR" in inp:
-
-            try:
-                client_path = inp.split(" ")[1]
-
-                file = open(client_path, "rb")
-                file_chunk = file.read(1024)
-
-                while file_chunk:
-                    sock.send(file_chunk)
-                    file_chunk = file.read(1024)
-                sock.send(b'0')
-
-                file.close()
+            control_msg = sock.recv(1024).decode()
+            if "This folder is private!" in control_msg:
+                print(control_msg)
+                sock.send("OK".encode())
                 continue
+            else:
+                try:
+                    client_path = inp.split(" ")[1]
 
-            except FileNotFoundError:
-                print("File Not Found")
-                continue
+                    file = open(client_path, "rb")
+                    file_chunk = file.read()
+                    file_chunk = fernet.encrypt(file_chunk)
+                    temp = open("temp.txt", "wb")
+                    temp.write(file_chunk)
+                    temp.close()
+                    temp = open("temp.txt", "rb")
+                    file_chunk = temp.read(1024)
 
+                    while file_chunk:
+                        sock.send(file_chunk)
+                        file_chunk = temp.read(1024)
+                    sock.send(b'0')
+
+
+                    temp.close()
+                    file.close()
+                    continue
+
+                except FileNotFoundError:
+                    print("File Not Found")
+                    sock.send("File not found".encode())
+                    continue
 
         if "RETR" in inp:
-            try:
-                file_path = "E:/CN/network-project-phase02-rabbids/clients/" + inp.split("/")[-1]
+            file_path = "E:/CN/network-project-phase02-rabbids/clients/" + inp.split("/")[-1]
 
+            if ".txt" in file_path:
                 file_chunk = sock.recv(1024)
+
                 if file_chunk.decode() == "File Not Found":
                     print("File Not Found")
                     continue
-            except:
-                file = open(file_path, "wb")
+
+                if file_chunk.decode() == "This file is private!":
+                    print("This file is private!")
+                    continue
+
+                if file_chunk.decode() == "This folder is private!":
+                    print("This folder is private!")
+                    continue
+
+                file = open(file_path, "w")
 
                 if file_chunk == b'0':
+                    sock.send("received 0!".encode())
+                    file.close()
                     continue
 
                 while True:
-                    file.write(file_chunk)
+                    file.write(file_chunk.decode())
                     file_chunk = sock.recv(1024)
                     if file_chunk == b'0':
+                        sock.send("received 0".encode())
                         file.close()
                         break
+            else:
 
+                try:
+                    file_chunk = sock.recv(1024)
 
+                    if file_chunk == b'0':
+                        raise Exception("File empty!")
 
+                    if file_chunk.decode() == "File Not Found":
+                        print("File Not Found")
+                        continue
+                    if file_chunk.decode() == "This file is private!":
+                        print("This file is private!")
+                        continue
+                    if file_chunk.decode() == "This folder is private!":
+                        print("This folder is private!")
+                        continue
+                except Exception as e:
+                    file = open(file_path, "wb")
 
+                    if file_chunk == b'0':
+                        file.close()
+                        continue
+
+                    while True:
+                        file.write(file_chunk)
+                        file_chunk = sock.recv(1024)
+                        if file_chunk == b'0':
+                            file.close()
+                            break
 
