@@ -71,6 +71,7 @@ if __name__ == '__main__':
 
                 except FileNotFoundError:
                     print("File Not Found")
+                    sock.send("File not found".encode())
                     continue
 
         if "RETR" in inp:
@@ -87,17 +88,20 @@ if __name__ == '__main__':
                     print("This file is private!")
                     continue
 
+                if file_chunk.decode() == "This folder is private!":
+                    print("This folder is private!")
+                    continue
+
                 file = open(file_path, "w")
 
                 if file_chunk == b'0':
                     sock.send("received 0!".encode())
+                    file.close()
                     continue
 
-                print("here")
                 while True:
                     file.write(file_chunk.decode())
                     file_chunk = sock.recv(1024)
-                    print(file_chunk)
                     if file_chunk == b'0':
                         sock.send("received 0".encode())
                         file.close()
@@ -116,10 +120,14 @@ if __name__ == '__main__':
                     if file_chunk.decode() == "This file is private!":
                         print("This file is private!")
                         continue
+                    if file_chunk.decode() == "This folder is private!":
+                        print("This folder is private!")
+                        continue
                 except Exception as e:
                     file = open(file_path, "wb")
 
                     if file_chunk == b'0':
+                        file.close()
                         continue
 
                     while True:

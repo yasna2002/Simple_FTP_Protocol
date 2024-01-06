@@ -56,6 +56,9 @@ def handel_command(client_socket, command, user_name):
             if "prv" in server_path and user_name != "admin":
                 client_socket.send("This file is private!".encode())
                 client_socket.send("Only admin has access to this file!".encode())
+            elif "private" in server_path and user_name != "admin":
+                client_socket.send("This folder is private!".encode())
+                client_socket.send("Only admin has access to this folder!".encode())
             else:
                 if ".txt" in server_path:
                     file = open(server_path, "r")
@@ -95,7 +98,7 @@ def handel_command(client_socket, command, user_name):
 
         server_path = command[2] + "/" + command[1].split("/")[-1]
 
-        if "privet" in server_path and user_name != "admin":
+        if "private" in server_path and user_name != "admin":
             client_socket.send("This folder is private!".encode())
             client_socket.recv(1024).decode()
             client_socket.send("Only admin can write a file in this folder!".encode())
@@ -103,22 +106,27 @@ def handel_command(client_socket, command, user_name):
         else:
             client_socket.send("OK".encode())
 
-            file = open(server_path, "wb")
             file_chunk = client_socket.recv(1024)
 
-            while file_chunk != b'0':
-                file.write(file_chunk)
-                file_chunk = client_socket.recv(1024)
-                if file_chunk == b'0':
-                    file.close()
-                    break
-            client_socket.send("File has been received!".encode())
-            report += "File has been received from client!\n"
+            if file_chunk != "File not found".encode():
+                file = open(server_path, "wb")
 
+                while file_chunk != b'0':
+                    file.write(file_chunk)
+                    file_chunk = client_socket.recv(1024)
+                    if file_chunk == b'0':
+                        file.close()
+                        break
+                client_socket.send("File has been received!".encode())
+                report += "File has been received from client!\n"
+            else:
+                client_socket.send("No file has been received!".encode())
 
     elif command[0] == "DELE":
         report += "user entered: " + command[0] + "\n"
         if "prv" in command[1] and user_name != "admin":
+            client_socket.send("This file is private!\nOnly admin has access to this file!".encode())
+        if "private" in command[1] and user_name != "admin":
             client_socket.send("This file is private!\nOnly admin has access to this file!".encode())
         else:
             try:
@@ -140,7 +148,7 @@ def handel_command(client_socket, command, user_name):
     # .........................................................................
     elif command[0] == "MKD":
         report += "user entered: " + command[0] + "\n"
-        if "privet" in command[1] and user_name != "admin":
+        if "private" in command[1] and user_name != "admin":
             client_socket.send("This folder is private!\nOnly admin has access to this folder".encode())
         else:
             try:
@@ -160,7 +168,7 @@ def handel_command(client_socket, command, user_name):
     # .........................................................................
     elif command[0] == "RMD":
         report += "user entered: " + command[0] + "\n"
-        if "privet" in command[1] and user_name != "admin":
+        if "private" in command[1] and user_name != "admin":
             client_socket.send("This folder is private!\nOnly admin has access to this folder".encode())
         else:
             try:
@@ -184,7 +192,7 @@ def handel_command(client_socket, command, user_name):
     # .........................................................................
     elif command[0] == "CWD":
         report += "user entered: " + command[0] + "\n"
-        if "privet" in command[1] and user_name != "admin":
+        if "private" in command[1] and user_name != "admin":
             client_socket.send("This folder is private!\nOnly admin has access to this folder".encode())
         else:
             if ".." in command[1]:
@@ -233,22 +241,22 @@ def handel_command(client_socket, command, user_name):
 def check_command(client_socket):
     global report
 
-    chosen_command = client_socket.recv(1024).decode()
-    chosen_command = chosen_command.split()
+    input_command = client_socket.recv(1024).decode()
+    input_command = input_command.split(" ")
 
     while True:
-        if not (chosen_command[0] == "LIST" or chosen_command[0] == "RETR" or chosen_command[0] == "STOR" or
-                chosen_command[0] == "DELE" or chosen_command[0] == "MKD" or chosen_command[0] == "RMD" or
-                chosen_command[0] == "PWD" or chosen_command[0] == "CWD" or chosen_command[0] == "CDUP" or
-                chosen_command[0] == "QUIT" or chosen_command[0] == "REPO"):
+        if not (input_command[0] == "LIST" or input_command[0] == "RETR" or input_command[0] == "STOR" or
+                input_command[0] == "DELE" or input_command[0] == "MKD" or input_command[0] == "RMD" or
+                input_command[0] == "PWD" or input_command[0] == "CWD" or input_command[0] == "CDUP" or
+                input_command[0] == "QUIT" or input_command[0] == "REPO"):
             msg = "Invalid Command!\nTry Again:"
             report += "user has entered an invalid command\n"
             client_socket.send(msg.encode())
-            chosen_command = client_socket.recv(1024).decode()
-            chosen_command = chosen_command.split()
+            input_command = client_socket.recv(1024).decode()
+            input_command = input_command.split()
         else:
             break
-    return chosen_command
+    return input_command
 
 
 def handle_client(client_socket, client_address, user_name):
