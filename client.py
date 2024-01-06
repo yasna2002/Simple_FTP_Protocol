@@ -49,25 +49,29 @@ if __name__ == '__main__':
         sock.send(inp.encode())
 
         if "STOR" in inp:
+            control_msg = sock.recv(1024).decode()
+            if "This folder is private!" in control_msg:
+                print(control_msg)
+                sock.send("OK".encode())
+                continue
+            else:
+                try:
+                    client_path = inp.split(" ")[1]
 
-            try:
-                client_path = inp.split(" ")[1]
-
-                file = open(client_path, "rb")
-                file_chunk = file.read(1024)
-
-                while file_chunk:
-                    sock.send(file_chunk)
+                    file = open(client_path, "rb")
                     file_chunk = file.read(1024)
-                sock.send(b'0')
 
-                file.close()
-                continue
+                    while file_chunk:
+                        sock.send(file_chunk)
+                        file_chunk = file.read(1024)
+                    sock.send(b'0')
 
-            except FileNotFoundError:
-                print("File Not Found")
-                continue
+                    file.close()
+                    continue
 
+                except FileNotFoundError:
+                    print("File Not Found")
+                    continue
 
         if "RETR" in inp:
             file_path = "E:/CN/network-project-phase02-rabbids/clients/" + inp.split("/")[-1]
@@ -77,6 +81,10 @@ if __name__ == '__main__':
 
                 if file_chunk.decode() == "File Not Found":
                     print("File Not Found")
+                    continue
+
+                if file_chunk.decode() == "This file is private!":
+                    print("This file is private!")
                     continue
 
                 file = open(file_path, "w")
@@ -104,6 +112,9 @@ if __name__ == '__main__':
 
                     if file_chunk.decode() == "File Not Found":
                         print("File Not Found")
+                        continue
+                    if file_chunk.decode() == "This file is private!":
+                        print("This file is private!")
                         continue
                 except Exception as e:
                     file = open(file_path, "wb")
