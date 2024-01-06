@@ -34,7 +34,6 @@ if __name__ == '__main__':
     sock.connect(('localhost', 22))
 
     key = Fernet.generate_key()
-    print(key)
     fernet = Fernet(key)
 
 

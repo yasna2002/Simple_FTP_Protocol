@@ -21,7 +21,6 @@ report = ""
 def handel_command(client_socket, command, user_name, user_key):
     global curr_path
     global report
-    print(user_key)
     fernet = Fernet(user_key)
 
     if command[0] == "LIST":
