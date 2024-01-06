@@ -2,6 +2,8 @@ import os
 import datetime
 import socket
 import threading
+from cryptography.fernet import Fernet
+
 
 root_path = 'E:/CN/network-project-phase02-rabbids/Server'
 curr_path = 'E:/CN/network-project-phase02-rabbids/Server'
@@ -16,9 +18,12 @@ users = {
 report = ""
 
 
-def handel_command(client_socket, command, user_name):
+def handel_command(client_socket, command, user_name, user_key):
     global curr_path
     global report
+    print(user_key)
+    fernet = Fernet(user_key)
+
     if command[0] == "LIST":
         list_msg = ""
         if len(command) == 1:
@@ -109,14 +114,21 @@ def handel_command(client_socket, command, user_name):
             file_chunk = client_socket.recv(1024)
 
             if file_chunk != "File not found".encode():
+                temp = open("temp2.txt", "wb")
                 file = open(server_path, "wb")
-
                 while file_chunk != b'0':
-                    file.write(file_chunk)
+                    temp.write(file_chunk)
                     file_chunk = client_socket.recv(1024)
                     if file_chunk == b'0':
-                        file.close()
+                        temp.close()
                         break
+
+                temp = open("temp2.txt", "rb")
+                enc = temp.read()
+                dec = fernet.decrypt(enc)
+                file.write(dec)
+                file.close()
+                temp.close()
                 client_socket.send("File has been received!".encode())
                 report += "File has been received from client!\n"
             else:
@@ -235,7 +247,7 @@ def handel_command(client_socket, command, user_name):
         client_socket.send(report.encode())
 
     command = check_command(client_socket)
-    handel_command(client_socket, command, user_name)
+    handel_command(client_socket, command, user_name, user_key)
 
 
 def check_command(client_socket):
@@ -259,7 +271,7 @@ def check_command(client_socket):
     return input_command
 
 
-def handle_client(client_socket, client_address, user_name):
+def handle_client(client_socket, client_address, user_name, user_key):
     print(f"[NEW CONNECTION] {client_address} connected.")
 
     welcome_msg = "\n----You are connected to the server----\nhere is a list of commands you can send:\n" \
@@ -272,7 +284,7 @@ def handle_client(client_socket, client_address, user_name):
     # showing the list of commands to the user
     command = check_command(client_socket)
 
-    handel_command(client_socket, command, user_name)
+    handel_command(client_socket, command, user_name, user_key)
 
 
 def get_password(client_socket, client_address, user_name):
@@ -284,8 +296,10 @@ def get_password(client_socket, client_address, user_name):
             if int(password) == users[user_name]:
                 msg = "You are logged in"
                 client_socket.send(msg.encode())
+
+                user_key = client_socket.recv(1024)
                 report += "\nUser " + user_name + " has logged in\n"
-                handle_client(client_socket, client_address, user_name)
+                handle_client(client_socket, client_address, user_name, user_key)
                 break
             else:
                 msg = "wrong password"

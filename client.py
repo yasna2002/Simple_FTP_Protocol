@@ -9,7 +9,7 @@ def send_pass():
         msg = sock.recv(1024).decode()
 
         if msg == "You are logged in":
-            # sock.send(key)
+            sock.send(key)
             return
         else:
             print(msg)
@@ -32,9 +32,11 @@ def send_username():
 if __name__ == '__main__':
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.connect(('localhost', 22))
-    #
-    # key = Fernet.generate_key()
-    # fernet = Fernet(key)
+
+    key = Fernet.generate_key()
+    print(key)
+    fernet = Fernet(key)
+
 
     send_username()
 
@@ -59,13 +61,21 @@ if __name__ == '__main__':
                     client_path = inp.split(" ")[1]
 
                     file = open(client_path, "rb")
-                    file_chunk = file.read(1024)
+                    file_chunk = file.read()
+                    file_chunk = fernet.encrypt(file_chunk)
+                    temp = open("temp.txt", "wb")
+                    temp.write(file_chunk)
+                    temp.close()
+                    temp = open("temp.txt", "rb")
+                    file_chunk = temp.read(1024)
 
                     while file_chunk:
                         sock.send(file_chunk)
-                        file_chunk = file.read(1024)
+                        file_chunk = temp.read(1024)
                     sock.send(b'0')
 
+
+                    temp.close()
                     file.close()
                     continue
 
