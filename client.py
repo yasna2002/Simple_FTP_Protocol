@@ -1,4 +1,5 @@
 import socket
+from cryptography.fernet import Fernet
 
 
 def send_pass():
@@ -8,6 +9,7 @@ def send_pass():
         msg = sock.recv(1024).decode()
 
         if msg == "You are logged in":
+            # sock.send(key)
             return
         else:
             print(msg)
@@ -29,7 +31,10 @@ def send_username():
 
 if __name__ == '__main__':
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    sock.connect(('localhost', 8080))
+    sock.connect(('localhost', 22))
+    #
+    # key = Fernet.generate_key()
+    # fernet = Fernet(key)
 
     send_username()
 
@@ -65,27 +70,51 @@ if __name__ == '__main__':
 
 
         if "RETR" in inp:
-            try:
-                file_path = "E:/CN/network-project-phase02-rabbids/clients/" + inp.split("/")[-1]
+            file_path = "E:/CN/network-project-phase02-rabbids/clients/" + inp.split("/")[-1]
 
+            if ".txt" in file_path:
                 file_chunk = sock.recv(1024)
+
                 if file_chunk.decode() == "File Not Found":
                     print("File Not Found")
                     continue
-            except:
-                file = open(file_path, "wb")
+
+                file = open(file_path, "w")
 
                 if file_chunk == b'0':
+                    sock.send("received 0!".encode())
                     continue
 
+                print("here")
                 while True:
-                    file.write(file_chunk)
+                    file.write(file_chunk.decode())
                     file_chunk = sock.recv(1024)
+                    print(file_chunk)
                     if file_chunk == b'0':
+                        sock.send("received 0".encode())
                         file.close()
                         break
+            else:
 
+                try:
+                    file_chunk = sock.recv(1024)
 
+                    if file_chunk == b'0':
+                        raise Exception("File empty!")
 
+                    if file_chunk.decode() == "File Not Found":
+                        print("File Not Found")
+                        continue
+                except Exception as e:
+                    file = open(file_path, "wb")
 
+                    if file_chunk == b'0':
+                        continue
+
+                    while True:
+                        file.write(file_chunk)
+                        file_chunk = sock.recv(1024)
+                        if file_chunk == b'0':
+                            file.close()
+                            break
 

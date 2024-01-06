@@ -2,7 +2,6 @@ import os
 import datetime
 import socket
 import threading
-import os
 
 root_path = 'E:/CN/network-project-phase02-rabbids/Server'
 curr_path = 'E:/CN/network-project-phase02-rabbids/Server'
@@ -56,12 +55,14 @@ def handel_command(client_socket, command):
         try:
             if ".txt" in server_path:
                 file = open(server_path, "r")
-                file_chunk = file.readline()
+                file_chunk = file.read(1024)
 
                 while file_chunk:
                     client_socket.send(file_chunk.encode())
-                    file_chunk = file.readline()
+                    file_chunk = file.read(1024)
                 client_socket.send(b'0')
+
+                client_socket.recv(1024)
 
                 file.close()
                 client_socket.send("File has been sent successfully!".encode())
@@ -282,7 +283,7 @@ def get_username(client_socket, client_address):
 
 if __name__ == '__main__':
     host = 'localhost'
-    port = 8080
+    port = 22
 
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server_socket.bind((host, port))
